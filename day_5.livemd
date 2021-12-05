@@ -1,0 +1,121 @@
+# Day 5
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "0.4.0"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Add your input here:")
+```
+
+## Part 1
+
+```elixir
+string_to_xy_tuple = fn str ->
+  str
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+end
+
+starts_and_ends =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.split/1)
+  |> Enum.map(fn
+    [starting, _, ending] ->
+      {string_to_xy_tuple.(starting), string_to_xy_tuple.(ending)}
+  end)
+```
+
+```elixir
+build_vert_line = fn x, start_y, end_y ->
+  start_y..end_y
+  |> Enum.map(fn y_coord ->
+    {x, y_coord}
+  end)
+  |> List.flatten()
+end
+
+build_horiz_line = fn y, start_x, end_x ->
+  start_x..end_x
+  |> Enum.map(fn x_coord ->
+    {x_coord, y}
+  end)
+  |> List.flatten()
+end
+
+points =
+  starts_and_ends
+  |> Enum.reduce([], fn
+    {{x, start_y}, {x, end_y}}, acc -> [build_vert_line.(x, start_y, end_y) | acc]
+    {{start_x, y}, {end_x, y}}, acc -> [build_horiz_line.(y, start_x, end_x) | acc]
+    _, acc -> acc
+  end)
+  |> List.flatten()
+
+points
+|> Enum.sort()
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.reduce([], fn
+  [point, point], acc -> [point | acc]
+  [_first, _second], acc -> acc
+end)
+|> Enum.uniq()
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+build_vert_line = fn x, start_y, end_y ->
+  start_y..end_y
+  |> Enum.map(fn y_coord ->
+    {x, y_coord}
+  end)
+  |> List.flatten()
+end
+
+build_horiz_line = fn y, start_x, end_x ->
+  start_x..end_x
+  |> Enum.map(fn x_coord ->
+    {x_coord, y}
+  end)
+  |> List.flatten()
+end
+
+build_diag_line = fn start_x, end_x, start_y, end_y ->
+  start_x..end_x
+  |> Enum.zip(start_y..end_y)
+  |> List.flatten()
+end
+
+points =
+  starts_and_ends
+  |> Enum.reduce([], fn
+    {{x, start_y}, {x, end_y}}, acc ->
+      [build_vert_line.(x, start_y, end_y) | acc]
+
+    {{start_x, y}, {end_x, y}}, acc ->
+      [build_horiz_line.(y, start_x, end_x) | acc]
+
+    {{start_x, start_y}, {end_x, end_y}}, acc ->
+      [build_diag_line.(start_x, end_x, start_y, end_y) | acc]
+  end)
+  |> List.flatten()
+
+points
+|> Enum.sort()
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.reduce([], fn
+  [point, point], acc -> [point | acc]
+  [_first, _second], acc -> acc
+end)
+|> Enum.uniq()
+|> Enum.count()
+```
