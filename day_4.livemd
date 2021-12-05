@@ -1,0 +1,222 @@
+# Day 4
+
+## Setup
+
+```elixir
+Mix.install([{:kino, "0.4.0"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Add your input")
+```
+
+## Part 1
+
+```elixir
+[raw_numbers | raw_cards] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+
+numbers_to_draw =
+  raw_numbers
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+cards =
+  raw_cards
+  |> Enum.map(&String.split(&1, "\n"))
+  |> Enum.map(
+    &Enum.map(&1, fn column ->
+      column
+      |> String.split()
+      |> Enum.map(fn cell -> {String.to_integer(cell), false} end)
+    end)
+  )
+```
+
+```elixir
+defmodule Bingo.Card do
+  def mark_numbers(card, number) do
+    Enum.map(card, fn row ->
+      Enum.map(row, fn
+        {^number, false} -> {number, true}
+        self -> self
+      end)
+    end)
+  end
+
+  def winner?(card) do
+    case card do
+      [
+        [{_, true}, {_, true}, {_, true}, {_, true}, {_, true}],
+        _,
+        _,
+        _,
+        _
+      ] ->
+        true
+
+      [
+        _,
+        [{_, true}, {_, true}, {_, true}, {_, true}, {_, true}],
+        _,
+        _,
+        _
+      ] ->
+        true
+
+      [
+        _,
+        _,
+        [{_, true}, {_, true}, {_, true}, {_, true}, {_, true}],
+        _,
+        _
+      ] ->
+        true
+
+      [
+        _,
+        _,
+        _,
+        [{_, true}, {_, true}, {_, true}, {_, true}, {_, true}],
+        _
+      ] ->
+        true
+
+      [
+        _,
+        _,
+        _,
+        _,
+        [{_, true}, {_, true}, {_, true}, {_, true}, {_, true}]
+      ] ->
+        true
+
+      [
+        [{_, true}, _, _, _, _],
+        [{_, true}, _, _, _, _],
+        [{_, true}, _, _, _, _],
+        [{_, true}, _, _, _, _],
+        [{_, true}, _, _, _, _]
+      ] ->
+        true
+
+      [
+        [_, {_, true}, _, _, _],
+        [_, {_, true}, _, _, _],
+        [_, {_, true}, _, _, _],
+        [_, {_, true}, _, _, _],
+        [_, {_, true}, _, _, _]
+      ] ->
+        true
+
+      [
+        [_, _, {_, true}, _, _],
+        [_, _, {_, true}, _, _],
+        [_, _, {_, true}, _, _],
+        [_, _, {_, true}, _, _],
+        [_, _, {_, true}, _, _]
+      ] ->
+        true
+
+      [
+        [_, _, _, {_, true}, _],
+        [_, _, _, {_, true}, _],
+        [_, _, _, {_, true}, _],
+        [_, _, _, {_, true}, _],
+        [_, _, _, {_, true}, _]
+      ] ->
+        true
+
+      [
+        [_, _, _, _, {_, true}],
+        [_, _, _, _, {_, true}],
+        [_, _, _, _, {_, true}],
+        [_, _, _, _, {_, true}],
+        [_, _, _, _, {_, true}]
+      ] ->
+        true
+
+      _ ->
+        false
+    end
+  end
+end
+```
+
+```elixir
+defmodule Bingo do
+  def first_winning_card(numbers, cards) do
+    recur(numbers, cards)
+  end
+
+  def recur([], cards), do: cards
+
+  def recur([current_number | rest], cards) do
+    cards = Enum.map(cards, &Bingo.Card.mark_numbers(&1, current_number))
+
+    case check_for_winners(cards) do
+      [winning_card] -> {winning_card, current_number}
+      _ -> recur(rest, cards)
+    end
+  end
+
+  defp check_for_winners(cards) do
+    cards
+    |> Enum.filter(&Bingo.Card.winner?/1)
+  end
+end
+
+{winner, winning_number} = Bingo.first_winning_card(numbers_to_draw, cards)
+
+sum_of_remaining_numbers =
+  winner
+  |> List.flatten()
+  |> Enum.reduce([], fn
+    {remaining, false}, acc -> [remaining | acc]
+    _, acc -> acc
+  end)
+  |> Enum.sum()
+
+sum_of_remaining_numbers * winning_number
+```
+
+## Part 2
+
+```elixir
+defmodule Bingo do
+  def last_winning_card(numbers, cards) do
+    recur(numbers, [], cards, [])
+  end
+
+  def recur(_, prev_numbers, [], winners), do: {List.first(winners), List.first(prev_numbers)}
+
+  def recur([current_number | rest], prev_numbers, cards, winners) do
+    cards = Enum.map(cards, &Bingo.Card.mark_numbers(&1, current_number))
+
+    prev_numbers = [current_number | prev_numbers]
+
+    {new_winners, losers} =
+      cards
+      |> Enum.split_with(&Bingo.Card.winner?/1)
+
+    recur(rest, prev_numbers, losers, [new_winners | winners])
+  end
+end
+
+{winner, winning_number} = Bingo.last_winning_card(numbers_to_draw, cards)
+
+sum_of_remaining_numbers =
+  winner
+  |> List.flatten()
+  |> Enum.reduce([], fn
+    {remaining, false}, acc -> [remaining | acc]
+    _, acc -> acc
+  end)
+  |> Enum.sum()
+
+sum_of_remaining_numbers * winning_number
+```
