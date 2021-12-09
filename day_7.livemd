@@ -1,0 +1,72 @@
+<!-- vim: syntax=markdown -->
+
+# Day 7
+
+## Setup
+
+```elixir
+Mix.install([{:kino, "0.4.1"}])
+```
+
+```elixir
+input = Kino.Input.textarea("Paste your input here:", default: "16,1,2,0,4,2,7,1,2,14")
+```
+
+```elixir
+positions =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+consecutive_sum = fn count ->
+  # convert 4 to 1 + 2 + 3 + 4
+  # 1 + 2 + 3 + 4 = 10 can be expressed as 
+  # the average of the top and bottom of the sequence, 
+  # multiplied by the length:
+  # ((1 + 4) / 2) * 4 = 10
+  Kernel.trunc((1 + count) / 2 * count)
+end
+
+steps_to = fn value, destination ->
+  steps = value - destination
+  if steps < 0, do: steps * -1, else: steps
+end
+
+steps_to_as_consecutive_sum = fn value, destination ->
+  steps_to.(value, destination)
+  |> consecutive_sum.()
+end
+
+optimal_path_to_alignment = fn positions, callback ->
+  sorted = Enum.sort(positions)
+  lowest = List.first(sorted)
+  highest = List.last(sorted)
+
+  lowest..highest
+  |> Enum.reduce({}, fn destination, steps ->
+    cost =
+      sorted
+      |> Enum.reduce(0, fn
+        val, acc -> acc + callback.(val, destination)
+      end)
+
+    case steps do
+      {_, prev_cost} -> if cost < prev_cost, do: {destination, cost}, else: steps
+      _ -> {destination, cost}
+    end
+  end)
+end
+```
+
+### Part one
+
+```elixir
+optimal_path_to_alignment.(positions, steps_to_as_consecutive_sum)
+```
+
+### Part two
+
+```elixir
+optimal_path_to_alignment.(positions, steps_to)
+```
