@@ -1,0 +1,65 @@
+<!-- vim: syntax=markdown -->
+
+# Day 6
+
+## Section
+
+```elixir
+Mix.install([
+  {:kino, "0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Paste your puzzle input here:", default: "3,4,3,1,2")
+```
+
+```elixir
+defmodule FishSimulation do
+  def population_growth(fish, days) do
+    breed(fish, days) |> Map.values() |> Enum.sum()
+  end
+
+  def breed(fish, 0), do: fish
+
+  def breed(fish, days) do
+    fish =
+      fish
+      |> Enum.reduce(%{}, fn
+        {0, count}, acc ->
+          acc
+          |> Map.update(6, count, &(&1 + count))
+          |> Map.put(8, count)
+
+        {age, count}, acc ->
+          acc
+          |> Map.update(age - 1, count, &(&1 + count))
+      end)
+
+    breed(fish, days - 1)
+  end
+end
+```
+
+```elixir
+fish =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> List.first()
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.frequencies()
+```
+
+### Part 1:
+
+```elixir
+FishSimulation.population_growth(fish, 80)
+```
+
+### Part 2:
+
+```elixir
+FishSimulation.population_growth(fish, 256)
+```
